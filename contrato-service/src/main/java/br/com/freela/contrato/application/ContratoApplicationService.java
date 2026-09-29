@@ -26,24 +26,49 @@ public class ContratoApplicationService {
         log.info("contrato.dominio.criado contratoId={} status={} domainEvents={}",
                 contrato.id(), contrato.status(), contrato.domainEvents().size());
         Contrato salvo = repository.salvar(contrato);
-
-        // PONTO DO ASSESSMENT:
-        // Os eventos existem no Aggregate, mas ainda NÃO são publicados no Kafka.
-        // O aluno deverá implementar a estratégia de publicação/mensagens transacionais.
-        for (DomainEvent event : contrato.pullDomainEvents()) {
-            log.info("contrato.evento.pendente contratoId={} eventId={} eventType={} occurredAt={}",
-                    contrato.id(), event.eventId(), event.eventType(), event.occurredAt());
-        }
-
+        registrarEventosPendentes(contrato);
         log.info("contrato.criacao.sucesso contratoId={} clienteId={} freelancerId={} status={}",
                 salvo.id(), salvo.clienteId(), salvo.freelancerId(), salvo.status());
+        return salvo;
+    }
+
+    @Transactional
+    public Contrato registrarEntrega(UUID id) {
+        log.info("contrato.entrega.inicio contratoId={}", id);
+        Contrato contrato = buscarOuFalhar(id);
+        contrato.registrarEntrega();
+        Contrato salvo = repository.salvar(contrato);
+        registrarEventosPendentes(contrato);
+        log.info("contrato.entrega.sucesso contratoId={} status={}", id, salvo.status());
+        return salvo;
+    }
+
+    @Transactional
+    public Contrato concluir(UUID id) {
+        log.info("contrato.conclusao.inicio contratoId={}", id);
+        Contrato contrato = buscarOuFalhar(id);
+        contrato.concluir();
+        Contrato salvo = repository.salvar(contrato);
+        registrarEventosPendentes(contrato);
+        log.info("contrato.conclusao.sucesso contratoId={} status={}", id, salvo.status());
+        return salvo;
+    }
+
+    @Transactional
+    public Contrato cancelar(UUID id) {
+        log.info("contrato.cancelamento.inicio contratoId={}", id);
+        Contrato contrato = buscarOuFalhar(id);
+        contrato.cancelar();
+        Contrato salvo = repository.salvar(contrato);
+        registrarEventosPendentes(contrato);
+        log.info("contrato.cancelamento.sucesso contratoId={} status={}", id, salvo.status());
         return salvo;
     }
 
     @Transactional(readOnly = true)
     public Contrato buscar(UUID id) {
         log.info("contrato.busca.inicio contratoId={}", id);
-        var contrato = repository.buscarPorId(id).orElseThrow(() -> new IllegalArgumentException("Contrato não encontrado: " + id));
+        var contrato = buscarOuFalhar(id);
         log.info("contrato.busca.sucesso contratoId={} status={}", id, contrato.status());
         return contrato;
     }
@@ -54,5 +79,17 @@ public class ContratoApplicationService {
         var contratos = repository.listar();
         log.info("contrato.listagem.sucesso quantidade={}", contratos.size());
         return contratos;
+    }
+
+    private Contrato buscarOuFalhar(UUID id) {
+        return repository.buscarPorId(id).orElseThrow(() -> new ContratoNaoEncontradoException(id));
+    }
+
+    // PONTO DO EXERCÍCIO 2: aqui os eventos passarão a ser gravados na Outbox.
+    private void registrarEventosPendentes(Contrato contrato) {
+        for (DomainEvent event : contrato.pullDomainEvents()) {
+            log.info("contrato.evento.pendente contratoId={} eventId={} eventType={} occurredAt={}",
+                    contrato.id(), event.eventId(), event.eventType(), event.occurredAt());
+        }
     }
 }
