@@ -2,6 +2,7 @@ package br.com.freela.contrato.application;
 
 import br.com.freela.contrato.domain.model.Contrato;
 import br.com.freela.contrato.domain.repository.ContratoRepository;
+import br.com.freela.contrato.domain.repository.OutboxRepository;
 import br.com.freela.contrato.domain.shared.DomainEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,8 +16,12 @@ import java.util.UUID;
 public class ContratoApplicationService {
     private static final Logger log = LoggerFactory.getLogger(ContratoApplicationService.class);
     private final ContratoRepository repository;
+    private final OutboxRepository outboxRepository;
 
-    public ContratoApplicationService(ContratoRepository repository) { this.repository = repository; }
+    public ContratoApplicationService(ContratoRepository repository, OutboxRepository outboxRepository) {
+        this.repository = repository;
+        this.outboxRepository = outboxRepository;
+    }
 
     @Transactional
     public Contrato criar(CriarContratoCommand cmd) {
@@ -26,7 +31,7 @@ public class ContratoApplicationService {
         log.info("contrato.dominio.criado contratoId={} status={} domainEvents={}",
                 contrato.id(), contrato.status(), contrato.domainEvents().size());
         Contrato salvo = repository.salvar(contrato);
-        registrarEventosPendentes(contrato);
+        registrarEventos(contrato);
         log.info("contrato.criacao.sucesso contratoId={} clienteId={} freelancerId={} status={}",
                 salvo.id(), salvo.clienteId(), salvo.freelancerId(), salvo.status());
         return salvo;
@@ -38,7 +43,7 @@ public class ContratoApplicationService {
         Contrato contrato = buscarOuFalhar(id);
         contrato.registrarEntrega();
         Contrato salvo = repository.salvar(contrato);
-        registrarEventosPendentes(contrato);
+        registrarEventos(contrato);
         log.info("contrato.entrega.sucesso contratoId={} status={}", id, salvo.status());
         return salvo;
     }
@@ -49,7 +54,7 @@ public class ContratoApplicationService {
         Contrato contrato = buscarOuFalhar(id);
         contrato.concluir();
         Contrato salvo = repository.salvar(contrato);
-        registrarEventosPendentes(contrato);
+        registrarEventos(contrato);
         log.info("contrato.conclusao.sucesso contratoId={} status={}", id, salvo.status());
         return salvo;
     }
@@ -60,7 +65,7 @@ public class ContratoApplicationService {
         Contrato contrato = buscarOuFalhar(id);
         contrato.cancelar();
         Contrato salvo = repository.salvar(contrato);
-        registrarEventosPendentes(contrato);
+        registrarEventos(contrato);
         log.info("contrato.cancelamento.sucesso contratoId={} status={}", id, salvo.status());
         return salvo;
     }
@@ -85,10 +90,10 @@ public class ContratoApplicationService {
         return repository.buscarPorId(id).orElseThrow(() -> new ContratoNaoEncontradoException(id));
     }
 
-    // PONTO DO EXERCÍCIO 2: aqui os eventos passarão a ser gravados na Outbox.
-    private void registrarEventosPendentes(Contrato contrato) {
+    private void registrarEventos(Contrato contrato) {
         for (DomainEvent event : contrato.pullDomainEvents()) {
-            log.info("contrato.evento.pendente contratoId={} eventId={} eventType={} occurredAt={}",
+            outboxRepository.registrar(event);
+            log.info("contrato.evento.registrado contratoId={} eventId={} eventType={} occurredAt={}",
                     contrato.id(), event.eventId(), event.eventType(), event.occurredAt());
         }
     }
