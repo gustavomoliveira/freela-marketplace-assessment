@@ -20,8 +20,8 @@ public class ReputacaoService {
 
     @Transactional
     public void registrarContratoConcluido(UUID eventId, UUID contratoId, UUID freelancerId, BigDecimal valor) {
-        log.info("reputacao.atualizacao.inicio eventId={} contratoId={} freelancerId={} valor={}",
-                eventId, contratoId, freelancerId, valor);
+        log.info("reputacao.atualizacao.inicio eventId={} contratoId={} freelancerId={}",
+                eventId, contratoId, freelancerId);
 
         if (processados.existsById(eventId)) {
             log.warn("reputacao.atualizacao.duplicado eventId={} contratoId={} freelancerId={}",
@@ -35,7 +35,7 @@ public class ReputacaoService {
         repository.save(reputacao);
         processados.save(new EventoProcessado(eventId));
 
-        log.info("reputacao.atualizacao.sucesso eventId={} contratoId={} freelancerId={} contratosConcluidos={} valorTotal={}",
-                eventId, contratoId, freelancerId, reputacao.getContratosConcluidos(), reputacao.getValorTotal());
+        log.info("reputacao.atualizacao.sucesso eventId={} contratoId={} freelancerId={} contratosConcluidos={}",
+                eventId, contratoId, freelancerId, reputacao.getContratosConcluidos());
     }
 }

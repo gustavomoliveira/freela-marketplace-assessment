@@ -3,6 +3,7 @@ package br.com.freela.contrato.infrastructure.messaging;
 import br.com.freela.contrato.infrastructure.persistence.SpringDataOutboxRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -24,29 +25,31 @@ public class OutboxPublicador {
     @Transactional
     public void publicarPendentes() {
         var pendentes = repository.findTop50ByPublicadoEmIsNullOrderByIdAsc();
-
         if (pendentes.isEmpty()) return;
-
         log.info("contrato.outbox.publicacao.lote quantidade={}", pendentes.size());
 
         for (var mensagem : pendentes) {
-            log.info("contrato.outbox.publicacao.inicio contratoId={} eventId={} eventType={} topico={} correlationId={}",
-                    mensagem.getContratoId(), mensagem.getEventId(), mensagem.getEventType(), mensagem.getTopico(), mensagem.getCorrelationId());
+            MDC.put("correlationId", mensagem.getCorrelationId());
             try {
+                log.info("contrato.outbox.publicacao.inicio contratoId={} eventId={} eventType={} topico={}",
+                        mensagem.getContratoId(), mensagem.getEventId(), mensagem.getEventType(), mensagem.getTopico());
                 var resultado = kafkaTemplate.send(mensagem.getTopico(), mensagem.getContratoId().toString(), mensagem.getPayload())
                         .get(15, TimeUnit.SECONDS);
                 mensagem.marcarPublicada();
-                log.info("contrato.outbox.publicacao.sucesso contratoId={} eventId={} eventType={} partition={} offset={} correlationId={}",
+                log.info("contrato.outbox.publicacao.sucesso contratoId={} eventId={} eventType={} partition={} offset={}",
                         mensagem.getContratoId(), mensagem.getEventId(), mensagem.getEventType(),
-                        resultado.getRecordMetadata().partition(), resultado.getRecordMetadata().offset(), mensagem.getCorrelationId());
+                        resultado.getRecordMetadata().partition(), resultado.getRecordMetadata().offset());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                log.error("contrato.outbox.publicacao.interrompida contratoId={} eventId={}", mensagem.getContratoId(), mensagem.getEventId());
+                log.error("contrato.outbox.publicacao.interrompida contratoId={} eventId={}",
+                        mensagem.getContratoId(), mensagem.getEventId());
                 return;
             } catch (Exception e) {
-                log.error("contrato.outbox.publicacao.falha contratoId={} eventId={} eventType={} correlationId={} erro={}",
-                        mensagem.getContratoId(), mensagem.getEventId(), mensagem.getEventType(), mensagem.getCorrelationId(), e.toString());
+                log.error("contrato.outbox.publicacao.falha contratoId={} eventId={} eventType={} erro={}",
+                        mensagem.getContratoId(), mensagem.getEventId(), mensagem.getEventType(), e.toString());
                 return;
+            } finally {
+                MDC.remove("correlationId");
             }
         }
     }

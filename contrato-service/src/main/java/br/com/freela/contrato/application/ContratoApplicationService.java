@@ -25,8 +25,7 @@ public class ContratoApplicationService {
 
     @Transactional
     public Contrato criar(CriarContratoCommand cmd) {
-        log.info("contrato.criacao.inicio clienteId={} freelancerId={} titulo={} valor={}",
-                cmd.clienteId(), cmd.freelancerId(), cmd.titulo(), cmd.valor());
+        log.info("contrato.criacao.inicio clienteId={} freelancerId={}", cmd.clienteId(), cmd.freelancerId());
         Contrato contrato = Contrato.criar(cmd.clienteId(), cmd.freelancerId(), cmd.titulo(), cmd.valor());
         log.info("contrato.dominio.criado contratoId={} status={} domainEvents={}",
                 contrato.id(), contrato.status(), contrato.domainEvents().size());
