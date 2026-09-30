@@ -2,6 +2,7 @@ package br.com.freela.auditoria;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
@@ -29,9 +30,12 @@ public class AuditoriaConsumer {
         String correlationId = evento.path("correlationId").asString();
         Instant occurredAt = Instant.parse(evento.path("occurredAt").asString());
 
-        log.info("auditoria.evento.recebido eventId={} contratoId={} eventType={} correlationId={}",
-                eventId, contratoId, tipo, correlationId);
-
-        service.registrar(eventId, contratoId, tipo, correlationId, occurredAt, mensagem);
+        MDC.put("correlationId", correlationId);
+        try {
+            log.info("auditoria.evento.recebido eventId={} contratoId={} eventType={}", eventId, contratoId, tipo);
+            service.registrar(eventId, contratoId, tipo, correlationId, occurredAt, mensagem);
+        } finally {
+            MDC.remove("correlationId");
+        }
     }
 }

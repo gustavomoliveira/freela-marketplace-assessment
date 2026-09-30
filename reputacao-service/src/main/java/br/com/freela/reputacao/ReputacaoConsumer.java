@@ -2,6 +2,7 @@ package br.com.freela.reputacao;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
@@ -27,16 +28,20 @@ public class ReputacaoConsumer {
         String tipo = evento.path("eventType").asString();
         String correlationId = evento.path("correlationId").asString();
 
-        log.info("reputacao.evento.recebido eventId={} contratoId={} eventType={} correlationId={}",
-                eventId, contratoId, tipo, correlationId);
+        MDC.put("correlationId", correlationId);
+        try {
+            log.info("reputacao.evento.recebido eventId={} contratoId={} eventType={}", eventId, contratoId, tipo);
 
-        if (!"ContratoConcluido".equals(tipo)) {
-            log.info("reputacao.evento.ignorado eventId={} eventType={}", eventId, tipo);
-            return;
+            if (!"ContratoConcluido".equals(tipo)) {
+                log.info("reputacao.evento.ignorado eventId={} eventType={}", eventId, tipo);
+                return;
+            }
+
+            JsonNode payload = evento.path("payload");
+            UUID freelancerId = UUID.fromString(payload.path("freelancerId").asString());
+            service.registrarContratoConcluido(eventId, contratoId, freelancerId, payload.path("valor").decimalValue());
+        } finally {
+            MDC.remove("correlationId");
         }
-
-        JsonNode payload = evento.path("payload");
-        UUID freelancerId = UUID.fromString(payload.path("freelancerId").asString());
-        service.registrarContratoConcluido(eventId, contratoId, freelancerId, payload.path("valor").decimalValue());
     }
 }

@@ -19,8 +19,8 @@ public class AuditoriaService {
     @Transactional
     public void registrar(UUID eventId, UUID aggregateId, String eventType, String correlationId,
                           Instant occurredAt, String payload) {
-        log.info("auditoria.registro.inicio eventId={} aggregateId={} eventType={} correlationId={}",
-                eventId, aggregateId, eventType, correlationId);
+        log.info("auditoria.registro.inicio eventId={} aggregateId={} eventType={}",
+                eventId, aggregateId, eventType);
 
         if (repository.existsByEventId(eventId)) {
             log.warn("auditoria.registro.duplicado eventId={} aggregateId={} eventType={}",

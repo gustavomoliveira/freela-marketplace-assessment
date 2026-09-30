@@ -15,7 +15,6 @@ import tools.jackson.databind.node.ObjectNode;
 
 @Repository
 public class OutboxRepositoryJpaAdapter implements OutboxRepository {
-
     private static final Logger log = LoggerFactory.getLogger(OutboxRepositoryJpaAdapter.class);
     private final SpringDataOutboxRepository jpa;
     private final JsonMapper mapper;
@@ -29,21 +28,21 @@ public class OutboxRepositoryJpaAdapter implements OutboxRepository {
     @Transactional(propagation = Propagation.MANDATORY)
     public void registrar(DomainEvent evento) {
         String correlationId = MDC.get("correlationId");
-
-        log.info("contrato.outbox.registro.inicio contratoId={} eventId={} eventType={} correlationId={}",
-                evento.contratoId(), evento.eventId(), evento.eventType(), correlationId);
+        log.info("contrato.outbox.registro.inicio contratoId={} eventId={} eventType={}",
+                evento.contratoId(), evento.eventId(), evento.eventType());
 
         ObjectNode payload = mapper.valueToTree(evento);
-
-        payload.remove("eventId"); payload.remove("occurredAt"); payload.remove("contratoId"); payload.remove("eventType");
+        payload.remove("eventId");
+        payload.remove("occurredAt");
+        payload.remove("contratoId");
+        payload.remove("eventType");
 
         var envelope = new EventoEnvelope(evento.eventId(), evento.eventType(), evento.contratoId(),
                 evento.occurredAt(), correlationId, payload);
-
         jpa.save(new OutboxJpaEntity(evento.eventId(), evento.contratoId(), evento.eventType(),
                 Topicos.CONTRATO_EVENTOS, correlationId, mapper.writeValueAsString(envelope)));
 
-        log.info("contrato.outbox.registro.sucesso contratoId={} eventId={} eventType={} correlationId={}",
-                evento.contratoId(), evento.eventId(), evento.eventType(), correlationId);
+        log.info("contrato.outbox.registro.sucesso contratoId={} eventId={} eventType={}",
+                evento.contratoId(), evento.eventId(), evento.eventType());
     }
 }
