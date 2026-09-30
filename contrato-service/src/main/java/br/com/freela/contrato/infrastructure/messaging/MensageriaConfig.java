@@ -14,4 +14,9 @@ public class MensageriaConfig {
     public NewTopic contratoEventosTopic() {
         return TopicBuilder.name(Topicos.CONTRATO_EVENTOS).partitions(3).replicas(1).build();
     }
+
+    @Bean
+    public NewTopic contratoEventosDltTopic() {
+        return TopicBuilder.name(Topicos.CONTRATO_EVENTOS_DLT).partitions(3).replicas(1).build();
+    }
 }
