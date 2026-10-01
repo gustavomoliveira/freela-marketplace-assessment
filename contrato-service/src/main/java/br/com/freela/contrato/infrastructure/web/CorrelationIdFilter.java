@@ -1,5 +1,7 @@
 package br.com.freela.contrato.infrastructure.web;
 
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,16 +16,23 @@ import java.util.UUID;
 public class CorrelationIdFilter extends OncePerRequestFilter {
     private static final String HEADER = "X-Correlation-Id";
     private static final String MDC_KEY = "correlationId";
+    private final Tracer tracer;
+
+    public CorrelationIdFilter(Tracer tracer) {
+        this.tracer = tracer;
+    }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
         String correlationId = request.getHeader(HEADER);
-
         if (correlationId == null || correlationId.isBlank()) correlationId = UUID.randomUUID().toString();
-
         MDC.put(MDC_KEY, correlationId);
         response.setHeader(HEADER, correlationId);
+
+        Span span = tracer.currentSpan();
+        if (span != null) span.tag(MDC_KEY, correlationId);
+
         try {
             chain.doFilter(request, response);
         } finally {

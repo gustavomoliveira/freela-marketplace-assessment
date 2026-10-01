@@ -80,6 +80,13 @@ services:
       - ./grafana/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
     networks: [freela-net]
 
+  zipkin:
+    image: openzipkin/zipkin:3.6
+    container_name: freela-zipkin
+    ports:
+      - "9411:9411"
+    networks: [freela-net]
+
 volumes:
   postgres_data:
 

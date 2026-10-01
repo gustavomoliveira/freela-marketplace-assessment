@@ -26,6 +26,8 @@ spring:
         max.block.ms: 5000
         request.timeout.ms: 5000
         delivery.timeout.ms: 10000
+    template:
+      observation-enabled: true
 freela:
   outbox:
     intervalo-ms: 1000
@@ -37,6 +39,15 @@ management:
   endpoint:
     health:
       show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+    export:
+      zipkin:
+        endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}
+  observations:
+    enable:
+      tasks.scheduled.execution: false
 eureka:
   client:
     service-url:
