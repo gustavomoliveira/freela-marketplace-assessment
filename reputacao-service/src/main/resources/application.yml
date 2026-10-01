@@ -18,8 +18,9 @@ spring:
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-  listener:
-    concurrency: 3
+    listener:
+      concurrency: 3
+      observation-enabled: true
 management:
   endpoints:
     web:
@@ -28,6 +29,12 @@ management:
   endpoint:
     health:
       show-details: always
+  tracing:
+    sampling:
+      probability: 1.0
+    export:
+      zipkin:
+        endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}
 eureka:
   client:
     service-url:
