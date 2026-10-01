@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+    <include resource="org/springframework/boot/logging/logback/console-appender.xml"/>
+
+    <springProperty scope="context" name="app" source="spring.application.name"/>
+
+    <appender name="LOKI" class="com.github.loki4j.logback.Loki4jAppender">
+        <labels>
+            service = ${app}
+            level = %level
+        </labels>
+        <structuredMetadata>off</structuredMetadata>
+        <message>
+            <pattern>correlationId=%X{correlationId:-n/a} thread=%thread logger=%logger{36} - %msg %ex</pattern>
+        </message>
+        <http>
+            <url>${LOKI_URL:-http://localhost:3100/loki/api/v1/push}</url>
+        </http>
+        <batch>
+            <timeoutMs>2000</timeoutMs>
+        </batch>
+    </appender>
+
+    <logger name="br.com.freela" level="INFO">
+        <appender-ref ref="LOKI"/>
+    </logger>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+</configuration>

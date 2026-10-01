@@ -11,6 +11,7 @@
         <java.version>21</java.version>
         <spring-boot.version>4.1.0</spring-boot.version>
         <spring-cloud.version>2025.1.2</spring-cloud.version>
+        <loki4j.version>2.0.3</loki4j.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
     </properties>
 
